@@ -1,0 +1,10 @@
+Issue Type,Summary,Issue ID,Epic Name,Epic Link,Story Points,Sprint,Depends On,Assignee Role,Description,Acceptance Criteria
+Epic,"E1 Core Physics and Input",E1,"E1 Core Physics and Input",,,"Sprint 1",,Tech Lead,"Physics foundation and input abstraction for Switch/PC/mobile.","Core hit/flip input and physics are stable in prototype scene"
+Epic,"E2 Rules Scoring and Turn Resolution",E2,"E2 Rules Scoring and Turn Resolution",,,"Sprint 1-2",,Tech Lead,"Implements authentic rules including outs scoring innings and tie-break.","All rules pass functional test matrix"
+Epic,"E3 AI and Field Simulation",E3,"E3 AI and Field Simulation",,,"Sprint 2-3",,Gameplay Engineer,"Fielding and batting AI with terrain and wind interactions.","AI tiers behave distinctly and complete legal turns"
+Epic,"E4 UI UX Tutorial and Replay",E4,"E4 UI UX Tutorial and Replay",,,"Sprint 2-4",,UI/UX,"HUD menus tutorial and cinematic replay systems.","Usable menus HUD and onboarding with replay v1"
+Epic,"E5 Content Art Audio Culture",E5,"E5 Content Art Audio Culture",,,"Sprint 2-4",,Art/Audio,"Field characters animation audio and cultural flavor systems.","Content pack integrated and quality reviewed"
+Epic,"E6 Modes and Progression",E6,"E6 Modes and Progression",,,"Sprint 3-5",,Gameplay Engineer,"Quick Match Tournament Career Challenges and economy.","All mode loops complete and save/load stable"
+Epic,"E7 Regional Variants",E7,"E7 Regional Variants",,,"Sprint 5",,Tech Lead,"Danguli Chinni Dandu and Viti Dandu variant rule sets.","Variant rules selectable and validated"
+Epic,"E8 Multiplayer and Online",E8,"E8 Multiplayer and Online",,,"Sprint 5-6",,Network Engineer,"Local split-screen and online ranked architecture.","Playable online matches with reconnect and rank update"
+Epic,"E9 Accessibility QA Performance Release",E9,"E9 Accessibility QA Performance Release",,,"Sprint 6",,Producer,"Accessibility hardening QA and release prep for Switch/Steam.","RC build meets quality and platform requirements"

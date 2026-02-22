@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gilli Danda Legends</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>Gilli Danda Legends</h1>
+        <p class="tag">Classic rural sport, physics-first gameplay</p>
+      </div>
+      <div class="config">
+        <label>Mode
+          <select id="modeSelect">
+            <option value="quick">Quick Match (1 inning each)</option>
+            <option value="classic" selected>Classic (2 innings each)</option>
+          </select>
+        </label>
+        <label>Variant
+          <select id="variantSelect">
+            <option value="classic" selected>Classic</option>
+            <option value="danguli">Danguli (Bengal)</option>
+            <option value="chinni">Chinni Dandu (Karnataka)</option>
+            <option value="viti">Viti Dandu (Maharashtra)</option>
+          </select>
+        </label>
+        <label>Difficulty
+          <select id="difficultySelect">
+            <option value="easy">Easy Kids</option>
+            <option value="club" selected>Club</option>
+            <option value="pro">Pro Tournament</option>
+          </select>
+        </label>
+        <label>Control
+          <select id="controlSelect">
+            <option value="single" selected>Single Player (vs AI)</option>
+            <option value="hotseat">Local Hotseat</option>
+          </select>
+        </label>
+        <label>Players / Team
+          <select id="playersSelect">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <section class="scoreboard">
+      <article class="team-card" id="teamAcard">
+        <h2 id="teamAName">Team A</h2>
+        <div class="line"><span>Total</span><strong id="teamATotal">0</strong></div>
+        <div class="line"><span>Innings Score</span><strong id="teamAInnings">0</strong></div>
+      </article>
+      <article class="center-card">
+        <div class="line"><span>Innings</span><strong id="inningsText">1/4</strong></div>
+        <div class="line"><span>Batting</span><strong id="battingText">Team A</strong></div>
+        <div class="line"><span>Wickets</span><strong id="wicketsText">0/5</strong></div>
+        <div class="line"><span>Target</span><strong id="targetText">-</strong></div>
+      </article>
+      <article class="team-card" id="teamBcard">
+        <h2 id="teamBName">Team B</h2>
+        <div class="line"><span>Total</span><strong id="teamBTotal">0</strong></div>
+        <div class="line"><span>Innings Score</span><strong id="teamBInnings">0</strong></div>
+      </article>
+    </section>
+
+    <section class="ground-wrap">
+      <canvas id="ground" width="1100" height="520" aria-label="Gilli Danda field"></canvas>
+      <div class="overlay" id="overlayText"></div>
+      <div class="wind" id="windText"></div>
+      <div class="fielding-panel" id="fieldingPanel">
+        <div class="fielding-title">Fielding Joystick (when AI bats)</div>
+        <div class="joystick" id="joystickBase" aria-label="Fielding joystick">
+          <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button id="liftBtn" class="btn accent">Flip Gill</button>
+      <button id="swingBtn" class="btn">Swing Danda</button>
+      <button id="startBtn" class="btn">Start Match</button>
+      <button id="restartBtn" class="btn ghost">Reset Series</button>
+    </section>
+
+    <section class="status-bar">
+      <div><span>Striker:</span> <strong id="strikerText">A1</strong></div>
+      <div><span>Flip Attempts:</span> <strong id="attemptText">0/3</strong></div>
+      <div><span>Last Shot:</span> <strong id="shotText">-</strong></div>
+    </section>
+
+    <section class="hint">
+      <p><kbd>Space</kbd> flip, <kbd>Enter</kbd> swing, <kbd>R</kbd> start/reset match.</p>
+      <p>Authentic rules: 3 flip fails, air-catch out, and fielder danda-hit out. Runs use danda-length measurement.</p>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
