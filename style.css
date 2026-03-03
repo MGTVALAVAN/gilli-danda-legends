@@ -283,7 +283,7 @@ canvas {
 .controls {
   margin-top: var(--hud-gap);
   display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
   gap: 10px;
   animation: rise 700ms ease-out both;
 }
@@ -385,7 +385,7 @@ kbd {
   }
 
   .controls {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
   }
 }
 
@@ -408,6 +408,10 @@ kbd {
 
   .status-bar {
     grid-template-columns: 1fr;
+  }
+
+  .controls {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 
   .fielding-panel {

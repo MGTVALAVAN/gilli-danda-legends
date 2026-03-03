@@ -30,6 +30,7 @@ const playersSelect = document.getElementById("playersSelect");
 
 const liftBtn = document.getElementById("liftBtn");
 const swingBtn = document.getElementById("swingBtn");
+const catchBtn = document.getElementById("catchBtn");
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
 
@@ -76,6 +77,8 @@ const state = {
   aiFlipTimer: 0,
   aiSwingTimer: 0,
   aiSecondSwingTimer: 0,
+  catchAttemptTimer: 0,
+  catchRecoveryTimer: 0,
   keyFieldX: 0,
   keyFieldY: 0,
   manualStick: { active: false, x: 0, y: 0, pointerId: null },
@@ -93,8 +96,8 @@ const state = {
     catchCooldown: 0,
   },
   fielders: [
-    { x: 680, y: GROUND_Y - 12, speed: 160 },
-    { x: 860, y: GROUND_Y - 10, speed: 182 },
+    { x: 680, y: GROUND_Y - 36, speed: 160 },
+    { x: 860, y: GROUND_Y - 28, speed: 182 },
   ],
   trail: [],
 };
@@ -148,6 +151,10 @@ function isFieldingTeamAI() {
   return !isCurrentTeamAI();
 }
 
+function isManualFieldingActive() {
+  return state.running && !state.matchOver && state.turnActive && !isFieldingTeamAI();
+}
+
 function batterTag() {
   return `${state.battingTeam === 0 ? "A" : "B"}${state.strikerIndex[state.battingTeam]}`;
 }
@@ -159,9 +166,22 @@ function clearAITimers() {
   state.aiSecondSwingTimer = 0;
 }
 
+function predictLandingX(g) {
+  const a = 0.5 * GRAVITY;
+  const b = g.vy;
+  const c = g.y - GROUND_Y;
+  const disc = b * b - 4 * a * c;
+  if (disc <= 0) return g.x;
+  const t = (-b + Math.sqrt(disc)) / (2 * a);
+  const windTerm = state.wind * 0.12 * t * t;
+  return g.x + g.vx * t + windTerm;
+}
+
 function resetFielders() {
   state.fielders[0].x = 680;
+  state.fielders[0].y = GROUND_Y - 36;
   state.fielders[1].x = 860;
+  state.fielders[1].y = GROUND_Y - 28;
 }
 
 function setJoystickVector(nx, ny) {
@@ -179,8 +199,7 @@ function clearJoystick() {
 }
 
 function refreshFieldingPanel() {
-  const manualFieldingActive = state.running && !state.matchOver && state.turnActive && !isFieldingTeamAI();
-  fieldingPanelEl.classList.toggle("active", manualFieldingActive);
+  fieldingPanelEl.classList.toggle("active", isManualFieldingActive());
 }
 
 function resetGill() {
@@ -242,6 +261,11 @@ function updateButtons() {
   const lockedForAI = isCurrentTeamAI();
   liftBtn.disabled = !state.running || state.matchOver || !state.turnActive || state.awaitingNextTurn || lockedForAI;
   swingBtn.disabled = !state.running || state.matchOver || !state.turnActive || !state.gill.inAir || state.awaitingNextTurn || lockedForAI;
+  catchBtn.disabled =
+    !isManualFieldingActive() ||
+    !state.gill.inAir ||
+    state.gill.hitCount <= 0 ||
+    state.catchRecoveryTimer > 0;
   startBtn.textContent = state.matchOver ? "Start New Match" : state.running ? "Match Running" : "Start Match";
   startBtn.disabled = state.running && !state.matchOver;
   refreshFieldingPanel();
@@ -263,11 +287,13 @@ function resetSeries() {
   state.flipAttempts = 0;
   state.swingWindow = 0;
   state.awaitingNextTurn = false;
+  state.catchAttemptTimer = 0;
+  state.catchRecoveryTimer = 0;
   clearAITimers();
   clearJoystick();
   setShotLabel("-");
   resetGill();
-  setOverlay("Press Start Match. Space=Flip, Enter=Swing. When AI bats, use joystick or arrow keys to field.");
+  setOverlay("Press Start Match. Space=Flip, Enter=Swing, C=Catch. Field manually when AI bats.");
   updateHud();
   updateButtons();
 }
@@ -288,7 +314,11 @@ function beginTurn() {
   state.wind = randomWind();
   clearJoystick();
   resetGill();
-  setOverlay(isCurrentTeamAI() ? "AI striker preparing to flip..." : "Tap Flip Gill. You have up to 3 attempts.");
+  setOverlay(
+    isCurrentTeamAI()
+      ? "AI striker preparing to flip. Move fielder and press C to attempt catch."
+      : "Tap Flip Gill. You have up to 3 attempts."
+  );
   armAITurn();
   updateHud();
   updateButtons();
@@ -370,6 +400,17 @@ function swingDanda() {
   state.swingWindow = 0;
 
   setOverlay(g.hitCount > 1 ? "Second mid-air hit. Double-runs armed." : "Clean strike. Fielders chasing the gilli.");
+  updateButtons();
+}
+
+function triggerCatchAttempt() {
+  if (!isManualFieldingActive()) return;
+  if (!state.gill.inAir || state.gill.hitCount <= 0) return;
+  if (state.catchRecoveryTimer > 0) return;
+
+  state.catchAttemptTimer = 0.22;
+  state.catchRecoveryTimer = 0.38;
+  setOverlay("Catch attempt! Time it as the gilli drops.");
   updateButtons();
 }
 
@@ -580,49 +621,73 @@ function updateFielders(dt) {
   const support = state.fielders[1];
 
   if (isFieldingTeamAI()) {
-    const targetX = g.inAir ? g.x + g.vx * 0.18 : HOLE_X + 130;
-    const speed = diff.aiFieldSpeed;
-    const mv = clamp((targetX - lead.x) * 1.15 * dt, -speed * dt, speed * dt);
-    lead.x += mv;
+    const targetX = g.inAir ? predictLandingX(g) : HOLE_X + 130;
+    const targetY = g.inAir ? clamp(g.y - 28, GROUND_Y - 100, GROUND_Y - 26) : GROUND_Y - 36;
+    const speed = diff.aiFieldSpeed + (g.inAir ? 22 : 0);
+    lead.x += clamp((targetX - lead.x) * 1.3 * dt, -speed * dt, speed * dt);
+    lead.y += clamp((targetY - lead.y) * 1.8 * dt, -speed * 0.6 * dt, speed * 0.6 * dt);
   } else {
     const inputX = clamp(state.manualStick.x + state.keyFieldX, -1, 1);
-    const speed = 210;
+    const inputY = clamp(state.manualStick.y + state.keyFieldY, -1, 1);
+    const speed = 225;
     lead.x += inputX * speed * dt;
+    lead.y += inputY * speed * 0.7 * dt;
   }
 
-  support.x += clamp((lead.x + 120 - support.x) * 0.75 * dt, -support.speed * dt, support.speed * dt);
+  support.x += clamp((lead.x + 120 - support.x) * 0.86 * dt, -support.speed * dt, support.speed * dt);
+  support.y += clamp((lead.y + 10 - support.y) * 1.1 * dt, -support.speed * 0.58 * dt, support.speed * 0.58 * dt);
   lead.x = clamp(lead.x, HOLE_X + 30, canvas.width - 35);
+  lead.y = clamp(lead.y, GROUND_Y - 110, GROUND_Y - 16);
   support.x = clamp(support.x, HOLE_X + 40, canvas.width - 30);
+  support.y = clamp(support.y, GROUND_Y - 110, GROUND_Y - 12);
 }
 
 function tryResolveCatch() {
   const g = state.gill;
   if (!g.inAir || g.hitCount <= 0) return false;
   if (g.catchCooldown > 0) return false;
-  if (g.vy < 80) return false;
+  if (g.vy < 40) return false;
   if (g.y < GROUND_Y - 100 || g.y > GROUND_Y - 14) return false;
 
   let closest = Infinity;
   for (const f of state.fielders) {
-    const d = Math.hypot(g.x - f.x, g.y - (f.y - 20));
-    if (d < closest) closest = d;
+    const d = Math.hypot(g.x - f.x, g.y - f.y);
+    if (d < closest) {
+      closest = d;
+    }
   }
 
   const diff = currentDifficulty();
   const rules = currentRules();
-  const radius = isFieldingTeamAI() ? 36 : 34;
+  const radius = isFieldingTeamAI() ? 44 : 48;
   if (closest > radius) return false;
 
-  let catchChance;
   if (isFieldingTeamAI()) {
-    catchChance = clamp(diff.catchBase + rules.catchBonus + (radius - closest) * 0.012, 0.12, 0.92);
-  } else {
-    catchChance = clamp(0.5 + (radius - closest) * 0.015, 0.35, 0.95);
+    const descentQuality = clamp(g.vy / 420, 0.2, 1);
+    const spacingQuality = clamp((radius - closest) / radius, 0, 1);
+    const catchChance = clamp(
+      0.36 + diff.catchBase + rules.catchBonus + spacingQuality * 0.45 + descentQuality * 0.1,
+      0.18,
+      0.94
+    );
+    g.catchCooldown = 0.12;
+    if (Math.random() < catchChance) {
+      endTurnOut("AI fielder takes a clean catch. OUT.", "Air Catch");
+      return true;
+    }
+    return false;
   }
 
-  g.catchCooldown = 0.18;
-  if (Math.random() < catchChance) {
-    endTurnOut(isFieldingTeamAI() ? "AI fielder takes a clean catch. OUT." : "Brilliant joystick catch. OUT.", "Air Catch");
+  if (state.catchAttemptTimer <= 0) return false;
+  const timingZone = clamp(1 - Math.abs(g.y - (GROUND_Y - 38)) / 88, 0, 1);
+  const spacing = clamp((radius - closest) / radius, 0, 1);
+  const successChance = clamp(0.24 + timingZone * 0.4 + spacing * 0.46, 0.15, 0.96);
+  g.catchCooldown = 0.2;
+  state.catchAttemptTimer = 0;
+  state.catchRecoveryTimer = 0.26;
+
+  if (Math.random() < successChance) {
+    endTurnOut("Perfect manual catch. OUT.", "Air Catch");
     return true;
   }
 
@@ -634,6 +699,8 @@ function updatePhysics(dt) {
 
   const g = state.gill;
   if (g.catchCooldown > 0) g.catchCooldown -= dt;
+  if (state.catchAttemptTimer > 0) state.catchAttemptTimer -= dt;
+  if (state.catchRecoveryTimer > 0) state.catchRecoveryTimer -= dt;
 
   updateFielders(dt);
   if (!g.inAir) return;
@@ -672,7 +739,7 @@ function updatePhysics(dt) {
       return;
     }
 
-    if (applyFielderThrowOutChance()) {
+    if (isFieldingTeamAI() && applyFielderThrowOutChance()) {
       endTurnOut("Fielder hits grounded danda with gilli. OUT.", "Danda Hit");
       return;
     }
@@ -721,13 +788,21 @@ function drawField() {
 function drawFielder() {
   for (let i = 0; i < state.fielders.length; i += 1) {
     const f = state.fielders[i];
+    if (i === 0 && state.catchAttemptTimer > 0 && isManualFieldingActive()) {
+      ctx.strokeStyle = "rgba(255, 245, 160, 0.95)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y - 6, 24, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     ctx.fillStyle = i === 0 ? "#1f5f2f" : "#2f7040";
     ctx.beginPath();
-    ctx.arc(f.x, f.y - 20, 10, 0, Math.PI * 2);
+    ctx.arc(f.x, f.y - 14, 10, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = i === 0 ? "#264c95" : "#5d4aa3";
-    ctx.fillRect(f.x - 8, f.y - 12, 16, 24);
+    ctx.fillRect(f.x - 8, f.y - 6, 16, 22);
   }
 }
 
@@ -771,14 +846,16 @@ function drawGill() {
 
 function drawTelemetry() {
   const g = state.gill;
-  const manualFielding = !isFieldingTeamAI() && state.running && state.turnActive;
+  const manualFielding = isManualFieldingActive();
   ctx.fillStyle = "rgba(22, 15, 9, 0.76)";
   ctx.font = "15px Trebuchet MS";
   ctx.fillText(`Variant: ${currentRules().name}`, 18, 28);
   ctx.fillText(`Gill Hits: ${g.hitCount}`, 18, 50);
   ctx.fillText(`Speed: ${Math.hypot(g.vx, g.vy).toFixed(0)} px/s`, 18, 72);
   if (manualFielding) {
-    ctx.fillText("Manual fielding active: joystick or arrow keys", 18, 94);
+    const catchState = state.catchAttemptTimer > 0 ? "Catch Window: OPEN" : "Catch Window: Press C";
+    ctx.fillText("Manual fielding: joystick/arrows + C", 18, 94);
+    ctx.fillText(catchState, 18, 116);
   }
 }
 
@@ -826,6 +903,7 @@ joystickBaseEl.addEventListener("pointercancel", releaseJoystick);
 
 liftBtn.addEventListener("click", flipGill);
 swingBtn.addEventListener("click", swingDanda);
+catchBtn.addEventListener("click", triggerCatchAttempt);
 startBtn.addEventListener("click", startMatch);
 restartBtn.addEventListener("click", resetSeries);
 
@@ -838,6 +916,7 @@ playersSelect.addEventListener("change", resetSeries);
 function handleKeyDown(event) {
   const isSpace = event.code === "Space" || event.key === " ";
   const isEnter = event.code === "Enter" || event.key === "Enter";
+  const isCatch = event.code === "KeyC" || event.key === "c" || event.key === "C";
   const isRestart = event.code === "KeyR" || event.key === "r" || event.key === "R";
 
   if (isSpace) {
@@ -850,6 +929,11 @@ function handleKeyDown(event) {
     event.preventDefault();
     if (!state.running || state.matchOver) startMatch();
     swingDanda();
+  }
+
+  if (isCatch) {
+    event.preventDefault();
+    triggerCatchAttempt();
   }
 
   if (isRestart) {

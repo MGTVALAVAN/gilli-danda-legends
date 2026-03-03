@@ -10,9 +10,10 @@ Open `/Users/mgtvalavan/Desktop/Screenshots/News Content Generation/GIlli game/i
 
 - `Space`: Flip gill
 - `Enter`: Swing danda
+- `C`: Catch / Dive (manual fielding)
 - `R`: Start match (when not already running)
 - `Arrow keys` / `WASD`: Move primary fielder when AI is batting (single-player fielding)
-- UI Buttons: Flip, Swing, Start Match, Reset Series
+- UI Buttons: Flip, Swing, Catch/Dive, Start Match, Reset Series
 
 ## Rules Implemented
 
@@ -59,7 +60,8 @@ Difficulty affects catch quality, throw-out probability, and timing tolerance.
 
 ## Fielding Behavior
 
-- When AI is fielding, it actively chases and attempts live catches (not just random instant outs).
+- When AI is fielding, it predicts landing path, chases in 2D, and attempts live catches.
 - When AI is batting in single-player, you can field manually using:
   - On-screen joystick (touch/mouse drag)
   - Keyboard arrows/WASD
+  - `C` key / Catch button for timed catch attempts
